@@ -1,0 +1,18 @@
+# 统一换行符行为
+* text=auto
+
+# Windows 批处理必须 CRLF
+*.bat text eol=crlf
+
+# Python/配置用 LF
+*.py text eol=lf
+*.json text eol=lf
+*.md text eol=lf
+*.html text eol=lf
+
+# 二进制
+*.png binary
+*.jpg binary
+*.ico binary
+*.mp4 binary
+*.zip binary
