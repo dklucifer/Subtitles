@@ -23,6 +23,32 @@ WEIGHTS = {"extract": 5, "screen": 5, "asr": 45, "translate": 40, "export": 5}
 # naive speed factors used for ETA before a stage starts measuring (x realtime)
 STAGE_SPEED = {"extract": 0.10, "screen": 0.15, "translate_batch_sec": 10.0}
 
+# target-language display name -> ISO-style code for subtitle filenames
+_LANG_CODES = [
+    ("简体", "zh"), ("繁體", "zh-tw"), ("繁体", "zh-tw"),
+    ("english", "en"), ("英", "en"),
+    ("日本", "ja"), ("日语", "ja"), ("日文", "ja"),
+    ("한국", "ko"), ("韩", "ko"),
+    ("français", "fr"), ("法", "fr"),
+    ("deutsch", "de"), ("德", "de"),
+    ("español", "es"), ("西", "es"),
+    ("русский", "ru"), ("俄", "ru"),
+    ("português", "pt"), ("葡", "pt"),
+    ("italiano", "it"), ("意", "it"),
+]
+
+
+def _lang_code(name):
+    """Map a target-language label like 简体中文 / English to a filename tag (zh / en)."""
+    import re as _re
+    n = (name or "").strip().lower()
+    for key, code in _LANG_CODES:
+        if key.lower() in n:
+            return code
+    slug = _re.sub(r"[^a-z0-9-]", "", n)[:8]
+    return slug or "sub"
+
+
 
 class Job:
     def __init__(self, media_path, original_name, params, cfg):
@@ -222,17 +248,22 @@ class Job:
 
         # ---- stage 5: export ----
         self._stage_start("export")
+
+        # subtitle filenames carry a language tag: 原名.zh.srt / 原名.zh.bilingual.srt
+        base = os.path.splitext(self.original_name)[0]
+        tgt_code = _lang_code(p.get("target_language") or cfg["subtitle"]["target_language"])
+
         self.stage("export", 30, 2)
-        src_path = srt_mod.write_srt(segments, os.path.join(out_dir, "subtitles.source.srt"),
+        src_path = srt_mod.write_srt(segments, os.path.join(out_dir, f"{base}.orig.srt"),
                                      mode="source", max_line_chars=cfg["subtitle"]["max_line_chars"])
-        files = [{"name": "subtitles.source.srt", "path": src_path}]
+        files = [{"name": f"{base}.orig.srt", "path": src_path}]
         if any(s.get("translation") for s in segments):
-            tgt_path = srt_mod.write_srt(segments, os.path.join(out_dir, "subtitles.target.srt"),
+            tgt_path = srt_mod.write_srt(segments, os.path.join(out_dir, f"{base}.{tgt_code}.srt"),
                                          mode="translation", max_line_chars=cfg["subtitle"]["max_line_chars"])
-            bi_path = srt_mod.write_srt(segments, os.path.join(out_dir, "subtitles.bilingual.srt"),
+            bi_path = srt_mod.write_srt(segments, os.path.join(out_dir, f"{base}.{tgt_code}.bilingual.srt"),
                                         mode="bilingual", max_line_chars=cfg["subtitle"]["max_line_chars"])
-            files += [{"name": "subtitles.target.srt", "path": tgt_path},
-                      {"name": "subtitles.bilingual.srt", "path": bi_path}]
+            files += [{"name": f"{base}.{tgt_code}.srt", "path": tgt_path},
+                      {"name": f"{base}.{tgt_code}.bilingual.srt", "path": bi_path}]
         if p.get("burn") and self.original_name.lower().endswith((".mp4", ".mkv", ".mov", ".webm")):
             srt_for_burn = bi_path if any(s.get("translation") for s in segments) else src_path
             self.stage("export", 60, None)

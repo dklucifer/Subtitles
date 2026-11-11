@@ -446,8 +446,7 @@ function resetProgress(){ $("progressCard").style.display="block"; $("resultCard
   renderStages(); setOverall(0,null,null); }
 
 function setOverall(pct, eta, elapsed){
-  $("pctBig").textContent=Math.round(pct)+"%";
-  $("overallBar").style.width=pct+"%";
+  if(pct!=null){ $("pctBig").textContent=Math.round(pct)+"%"; $("overallBar").style.width=pct+"%"; }
   if(eta!=null){ lastOverallEta=eta; lastEtaAt=Date.now(); }
   if(elapsed!=null) $("elapsedVal").textContent=fmt(elapsed);
   if(lastOverallEta!=null) $("etaVal").textContent=fmt(lastOverallEta-(Date.now()-lastEtaAt)/1000);
