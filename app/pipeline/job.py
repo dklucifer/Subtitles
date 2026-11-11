@@ -123,6 +123,8 @@ class Job:
         self._stage_start("asr")
         asr_start = time.time()
 
+        asr_logged_pct = [0.0]
+
         def on_asr_progress(done, total, marks=[]):
             # Progress arrives in bursts (one batch of clips finishes at once), so
             # interval-based estimates swing wildly. Use the average rate since the
@@ -132,9 +134,15 @@ class Job:
             else:
                 rate = done / max(0.001, time.time() - asr_start)
                 eta = max(0, (total - done) / rate)
-            self.stage("asr", done * 100.0 / total,
+            pct = done * 100.0 / total
+            self.stage("asr", pct,
                        round(eta) if eta is not None else None,
                        f"{done}/{total} blocks")
+            # keep the run log alive during this long stage (every 10%)
+            if done < total and pct - asr_logged_pct[0] >= 10:
+                asr_logged_pct[0] = pct
+                if eta is not None:
+                    self.log(f"ASR {int(pct)}% · {done}/{total} blocks · ETA {int(eta)}s")
 
         engine = p.get("asr_engine") or cfg["asr"].get("engine", "whisper")
         hotwords = (p.get("hotwords") or "").strip() or None
@@ -183,11 +191,18 @@ class Job:
             self._stage_start("translate")
             tr_start = time.time()
 
+            tr_logged_pct = [0.0]
+
             def on_tr_progress(done, total):
                 elapsed = time.time() - tr_start
                 per = elapsed / max(done, 1)
                 eta = max(0, (total - done) * per)
-                self.stage("translate", done * 100.0 / total, round(eta), f"{done}/{total} lines")
+                pct = done * 100.0 / total
+                self.stage("translate", pct, round(eta), f"{done}/{total} lines")
+                # keep the run log alive during this long stage (every 20%)
+                if done < total and pct - tr_logged_pct[0] >= 20:
+                    tr_logged_pct[0] = pct
+                    self.log(f"翻译中 {int(pct)}% · {done}/{total} 行 · ETA {int(eta)}s")
 
             self.log(f"Translating {len(lines)} lines -> {p.get('target_language')}...")
             translate_lines(lines, p.get("target_language") or cfg["subtitle"]["target_language"],

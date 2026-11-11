@@ -273,7 +273,10 @@ function renderStages(){
 }
 function stageClass(k){ if(currentStatus==="done") return "done";
   if(currentStatus==="error"||currentStatus==="cancelled") return currentStatus==="error"&&lastStage===k?"":"done";
-  if(lastStage===k) return "active"; return ""; }
+  const i=STAGE_KEYS.indexOf(k), cur=STAGE_KEYS.indexOf(lastStage);
+  if(i===cur) return "active";
+  if(cur>=0 && i<cur) return "done";   // finished stages light up green during the run
+  return ""; }
 function stageEtaText(k){
   const rec = stageEts[k]; if(!rec) return "";
   if(currentStatus==="done") return (t("st"),fmtDone(rec));
@@ -282,6 +285,7 @@ function stageEtaText(k){
 }
 function fmtDone(rec){ return ""; }
 let lastStage = null;
+let logSeen = 0;   // lines of st.log already rendered (dedup between WS snapshots and polling)
 
 // ---- dropzone ----
 const drop=$("drop");
@@ -432,7 +436,7 @@ async function cancelJob(){ await fetch("/api/cancel",{method:"POST"}); }
 function showErr(m){ const el=$("errBox"); el.style.display="block"; el.textContent=m; }
 function hideErr(){ $("errBox").style.display="none"; }
 function resetProgress(){ $("progressCard").style.display="block"; $("resultCard").style.display="none";
-  stageEts={}; lastStage=null; $("log").textContent=""; $("segBody").innerHTML="";
+  stageEts={}; lastStage=null; logSeen=0; $("log").textContent=""; $("segBody").innerHTML="";
   renderStages(); setOverall(0,null,null); }
 
 function setOverall(pct, eta, elapsed){
@@ -472,13 +476,20 @@ function connect(){
     const m=JSON.parse(e.data);
     if(m.type==="snapshot"){ applyState(m.state); }
     else if(m.type==="progress"){ currentStatus="running"; onProgress(m); }
-    else if(m.type==="log"){ onLog(m.text); }
+    else if(m.type==="log"){ logSeen++; onLog(m.text); }
     else if(m.type==="done"){ window.state=m; onDone(m); }
     else if(m.type==="error"){ currentStatus="error"; showErr(m.text); $("startBtn").disabled=false; $("cancelBtn").style.display="none"; }
     else if(m.type==="cancelled"){ currentStatus="cancelled"; $("startBtn").disabled=false; $("cancelBtn").style.display="none"; onLog("cancelled"); }
   };
   ws.onclose=()=>setTimeout(connect,2000);
 }
+// polling fallback: if the WS socket is down while a job runs, keep the UI alive
+setInterval(async()=>{
+  if(currentStatus!=="running" && currentStatus!=="queued") return;
+  if(ws && ws.readyState===1) return;
+  try{ const st=await (await fetch("/api/state")).json();
+       if(st && st.status && st.status!=="idle") applyState(st); }catch(e){}
+},3000);
 async function applyState(st){
   window.state=st;
   if(st.status==="running"||st.status==="queued"){
@@ -486,7 +497,8 @@ async function applyState(st){
     $("startBtn").disabled=true; currentStatus="running";
     setOverall(st.overall_pct, st.stage_eta, st.elapsed);
     if(st.stage){ lastStage=st.stage; stageEts[st.stage]={eta:st.stage_eta,at:Date.now()}; }
-    st.log.forEach(onLog); renderStages();
+    (st.log||[]).slice(logSeen).forEach(onLog); logSeen=(st.log||[]).length;
+    renderStages();
   } else if(st.status==="done"){
     currentStatus="done"; $("progressCard").style.display="block";
     setOverall(100,0,st.elapsed);
