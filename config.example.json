@@ -10,7 +10,7 @@
     "language": "auto"
   },
   "subtitle": {
-    "target_language": "简体中文",
+    "target_language": "Simplified Chinese",
     "bilingual": true,
     "max_line_chars": 42,
     "min_block_gap": 0.5,

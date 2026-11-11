@@ -25,16 +25,21 @@ STAGE_SPEED = {"extract": 0.10, "screen": 0.15, "translate_batch_sec": 10.0}
 
 # target-language display name -> ISO-style code for subtitle filenames
 _LANG_CODES = [
-    ("简体", "zh"), ("繁體", "zh-tw"), ("繁体", "zh-tw"),
+    ("simplified chinese", "zh"), ("traditional chinese", "zh-tw"),
+    ("chinese", "zh"), ("简体", "zh"), ("繁體", "zh-tw"), ("繁体", "zh-tw"),
     ("english", "en"), ("英", "en"),
-    ("日本", "ja"), ("日语", "ja"), ("日文", "ja"),
-    ("한국", "ko"), ("韩", "ko"),
-    ("français", "fr"), ("法", "fr"),
-    ("deutsch", "de"), ("德", "de"),
-    ("español", "es"), ("西", "es"),
-    ("русский", "ru"), ("俄", "ru"),
-    ("português", "pt"), ("葡", "pt"),
-    ("italiano", "it"), ("意", "it"),
+    ("japanese", "ja"), ("日本", "ja"), ("日语", "ja"), ("日文", "ja"),
+    ("korean", "ko"), ("한국", "ko"), ("韩", "ko"),
+    ("french", "fr"), ("français", "fr"), ("法", "fr"),
+    ("german", "de"), ("deutsch", "de"), ("德", "de"),
+    ("spanish", "es"), ("español", "es"), ("西", "es"),
+    ("portuguese", "pt"), ("português", "pt"), ("葡", "pt"),
+    ("italian", "it"), ("italiano", "it"), ("意", "it"),
+    ("russian", "ru"), ("русский", "ru"), ("俄", "ru"),
+    ("arabic", "ar"), ("阿拉伯", "ar"),
+    ("hindi", "hi"), ("印地", "hi"),
+    ("thai", "th"), ("泰", "th"),
+    ("vietnamese", "vi"), ("越南", "vi"),
 ]
 
 
