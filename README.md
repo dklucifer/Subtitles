@@ -37,7 +37,7 @@
 ### 安装运行
 
 ```bash
-git clone https://github.com/<你的用户名>/Subtitles.git
+git clone https://github.com/dklucifer/Subtitles.git
 cd Subtitles
 python -m venv .venv
 .venv\Scripts\pip install -r requirements.txt
