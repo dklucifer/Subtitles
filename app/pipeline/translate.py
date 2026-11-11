@@ -125,17 +125,27 @@ def _context_block(tail):
 
 
 def _ask(client, system, payload, model, tail, cancel=None):
+    """Attempt 0 sends response_format=json_object (DeepSeek/OpenAI/Gemini).
+    Some OpenAI-compatible endpoints (e.g. Anthropic) reject that parameter, so
+    attempt 1 retries without it and stresses the JSON shape in the message."""
     from openai import APIError
     user = _context_block(tail) + json.dumps({"lines": payload}, ensure_ascii=False)
     for attempt in (0, 1):
         try:
-            resp = client.chat.completions.create(
+            kwargs = dict(
                 model=model,
                 messages=[{"role": "system", "content": system},
                           {"role": "user", "content": user}],
                 temperature=0.3,
-                response_format={"type": "json_object"},
             )
+            if attempt == 0:
+                kwargs["response_format"] = {"type": "json_object"}
+            else:
+                user_retry = user + ('\nIMPORTANT: reply with ONLY a JSON object '
+                                     '{"lines":[{"index":<int>,"text":"<translation>"}]}, '
+                                     "no markdown, no extra text.")
+                kwargs["messages"][1]["content"] = user_retry
+            resp = client.chat.completions.create(**kwargs)
             data = json.loads(resp.choices[0].message.content or "{}")
             if isinstance(data.get("lines"), list):
                 return _index_map(data["lines"])

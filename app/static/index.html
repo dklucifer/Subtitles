@@ -184,6 +184,17 @@ details summary{cursor:pointer;color:var(--muted);font-size:13px;margin-bottom:1
     </div>
     <details style="margin-top:16px">
       <summary data-i18n="apiTitle">翻译 API 设置（保存在本机）</summary>
+      <div class="field" style="margin-top:10px"><label data-i18n="llmProvider">翻译服务商 · Provider</label>
+        <select id="llmProvider" onchange="onProvider()">
+          <option value="deepseek">DeepSeek</option>
+          <option value="openai">OpenAI · GPT</option>
+          <option value="anthropic">Anthropic · Claude</option>
+          <option value="gemini">Google · Gemini</option>
+          <option value="openrouter">OpenRouter</option>
+          <option value="groq">Groq</option>
+          <option value="ollama">Ollama · Local</option>
+          <option value="custom" data-i18n-opt="provCustom">自定义 · Custom</option>
+        </select></div>
       <div class="grid" style="margin-top:10px">
         <div class="field"><label>BASE URL</label><input type="text" id="llmBase" placeholder="https://api.deepseek.com/v1"></div>
         <div class="field"><label>API KEY</label><input type="password" id="llmKey" placeholder="sk-..."></div>
@@ -246,6 +257,7 @@ const I18N = {
       autoDetect:"自动检测",bilingualOpt:"生成双语字幕",burnOpt:"烧录进视频",fontSize:"字幕字号",fSmall:"小",fMedium:"中",fLarge:"大",apiTitle:"翻译 API 设置（保存在本机）",
       saveApi:"保存 API 设置",testApi:"测试连接",apiTesting:"测试中…",apiTestOk:"连接成功 · {ms} ms",apiTestFail:"连接失败：{e}",uploading:"上传中…",upDone:"上传完成，开始处理",
       start:"开始生成字幕",cancel:"取消",progressTitle:"3 · 处理进度",eta:"预计剩余",
+      llmProvider:"翻译服务商 · Provider",provCustom:"自定义 · Custom",
       openFolder:"打开所在文件夹",outPath:"输出位置",
       tgtCustom:"其他语言 · Other…",
       exitApp:"退出程序",exitConfirm:"确定退出 Subtitles 吗？后台服务将关闭。",exitConfirmRun:"正在处理任务，退出会中止任务并关闭服务。确定退出吗？",exitDone:"Subtitles 已退出，可以关闭此页面。",
@@ -267,6 +279,7 @@ const I18N = {
       autoDetect:"Auto detect",bilingualOpt:"Bilingual SRT",burnOpt:"Burn into video",fontSize:"Font size",fSmall:"Small",fMedium:"Medium",fLarge:"Large",apiTitle:"Translation API settings (stored locally)",
       saveApi:"Save API settings",testApi:"Test connection",apiTesting:"Testing…",apiTestOk:"Connected · {ms} ms",apiTestFail:"Failed: {e}",uploading:"Uploading…",upDone:"Upload complete, processing started",
       start:"Generate subtitles",cancel:"Cancel",progressTitle:"3 · Progress",eta:"ETA",
+      llmProvider:"Translation provider",provCustom:"Custom",
       openFolder:"Open folder",outPath:"Output folder",
       tgtCustom:"Other language · Other…",
       exitApp:"Exit",exitConfirm:"Exit Subtitles? The background service will shut down.",exitConfirmRun:"A job is running — exiting will abort it and shut down the service. Exit anyway?",exitDone:"Subtitles has exited. You can close this page now.",
@@ -329,9 +342,30 @@ function pick(f){ if(!f) return; selectedFile=f;
   $("fileChip").style.display="flex"; }
 
 // ---- config ----
+const LLM_PRESETS = {
+  deepseek:  {base:"https://api.deepseek.com/v1", model:"deepseek-chat"},
+  openai:    {base:"https://api.openai.com/v1", model:"gpt-4o-mini"},
+  anthropic: {base:"https://api.anthropic.com/v1/", model:"claude-sonnet-4-5"},
+  gemini:    {base:"https://generativelanguage.googleapis.com/v1beta/openai/", model:"gemini-2.0-flash"},
+  openrouter:{base:"https://openrouter.ai/api/v1", model:"openai/gpt-4o-mini"},
+  groq:      {base:"https://api.groq.com/openai/v1", model:"llama-3.3-70b-versatile"},
+  ollama:    {base:"http://127.0.0.1:11434/v1", model:"qwen2.5"}
+};
+function guessProvider(base){
+  base=(base||"").toLowerCase();
+  if(base.includes("deepseek"))return"deepseek"; if(base.includes("openai.com"))return"openai";
+  if(base.includes("anthropic"))return"anthropic"; if(base.includes("generativelanguage"))return"gemini";
+  if(base.includes("openrouter"))return"openrouter"; if(base.includes("groq"))return"groq";
+  if(base.includes("11434"))return"ollama"; return"custom";
+}
+function onProvider(){
+  const p=$("llmProvider").value, pr=LLM_PRESETS[p];
+  if(pr){ $("llmBase").value=pr.base; $("llmModel").value=pr.model; }
+}
 async function loadCfg(){
   const cfg = await (await fetch("/api/config")).json();
   if(cfg.llm){ $("llmBase").value=cfg.llm.base_url||""; $("llmModel").value=cfg.llm.model||""; }
+  $("llmProvider").value=guessProvider(cfg.llm?.base_url);
   $("apiStatus").textContent = cfg.has_api_key ? t("apiOk") : t("noKey");
   $("apiHint").textContent = cfg.has_api_key ? "" : t("noKey");
   if(cfg.subtitle){ $("glossary").value=cfg.subtitle.glossary||""; $("twoPass").checked=!!cfg.subtitle.two_pass; }
