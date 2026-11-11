@@ -241,6 +241,20 @@ def download(name: str):
     return JSONResponse({"error": "not found"}, status_code=404)
 
 
+@app.post("/api/open_folder")
+def open_folder():
+    """Open the job's output directory in Windows Explorer."""
+    job = MANAGER.job
+    out_dir = (job.state.get("info") or {}).get("out_dir") if job else None
+    if not out_dir or not os.path.isdir(out_dir):
+        return JSONResponse({"error": "no output directory yet"}, status_code=404)
+    try:
+        os.startfile(out_dir)   # Windows Explorer; local trusted app
+        return {"ok": True}
+    except Exception as e:
+        return JSONResponse({"error": str(e)}, status_code=500)
+
+
 @app.websocket("/ws")
 async def ws_progress(ws: WebSocket):
     await ws.accept()

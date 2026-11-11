@@ -90,6 +90,7 @@ class Job:
         p, cfg = self.params, self.cfg
         out_dir = os.path.join(ROOT, "output", self.id)
         os.makedirs(out_dir, exist_ok=True)
+        self.state["info"]["out_dir"] = out_dir
         wav = os.path.join(out_dir, "audio.wav")
 
         # ---- stage 1: extract ----
@@ -240,7 +241,7 @@ class Job:
             audio_mod.burn_subtitles(self.media_path, srt_for_burn.replace("\\", "/").replace(":", "\\:"),
                                      out_video, font_size=int(p.get("font_size", 24)))
             files.append({"name": os.path.basename(out_video), "path": out_video})
-        self.state["files"] = [{"name": f["name"]} for f in files]
+        self.state["files"] = [{"name": f["name"], "path": f["path"]} for f in files]
         with open(os.path.join(out_dir, "manifest.json"), "w", encoding="utf-8") as f:
             json.dump({"segments": segments, "files": files, "info": self.state["info"]},
                       f, ensure_ascii=False)

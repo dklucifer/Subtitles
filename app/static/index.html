@@ -202,6 +202,7 @@ details summary{cursor:pointer;color:var(--muted);font-size:13px;margin-bottom:1
     <h2 data-i18n="resultTitle">4 · 完成</h2>
     <div class="muted" id="resultInfo"></div>
     <div class="dl-row" id="dlRow"></div>
+    <div class="muted" id="outPath" style="font-size:12px;margin-top:4px;word-break:break-all"></div>
     <h2 style="margin-top:16px" data-i18n="previewTitle">字幕预览</h2>
     <div class="preview"><table>
       <thead><tr><th style="width:120px" data-i18n="colTime">时间</th><th data-i18n="colSrc">原文</th><th data-i18n="colDst">译文</th></tr></thead>
@@ -226,6 +227,7 @@ const I18N = {
       autoDetect:"自动检测",bilingualOpt:"生成双语字幕",burnOpt:"烧录进视频",fontSize:"字幕字号",fSmall:"小",fMedium:"中",fLarge:"大",apiTitle:"翻译 API 设置（保存在本机）",
       saveApi:"保存 API 设置",testApi:"测试连接",apiTesting:"测试中…",apiTestOk:"连接成功 · {ms} ms",apiTestFail:"连接失败：{e}",uploading:"上传中…",upDone:"上传完成，开始处理",
       start:"开始生成字幕",cancel:"取消",progressTitle:"3 · 处理进度",eta:"预计剩余",
+      openFolder:"打开所在文件夹",outPath:"输出位置",
       elapsed:"已用时",resultTitle:"4 · 完成",previewTitle:"字幕预览",colTime:"时间",colSrc:"原文",colDst:"译文",
       noKey:"未配置翻译 API —— 将只生成原文 SRT",ready:"就绪",running:"处理中…",done:"完成",error:"出错",cancelled:"已取消",
       apiSaved:"API 设置已保存",chooseFile:"请先选择文件",apiOk:"翻译 API 已配置",
@@ -244,6 +246,7 @@ const I18N = {
       autoDetect:"Auto detect",bilingualOpt:"Bilingual SRT",burnOpt:"Burn into video",fontSize:"Font size",fSmall:"Small",fMedium:"Medium",fLarge:"Large",apiTitle:"Translation API settings (stored locally)",
       saveApi:"Save API settings",testApi:"Test connection",apiTesting:"Testing…",apiTestOk:"Connected · {ms} ms",apiTestFail:"Failed: {e}",uploading:"Uploading…",upDone:"Upload complete, processing started",
       start:"Generate subtitles",cancel:"Cancel",progressTitle:"3 · Progress",eta:"ETA",
+      openFolder:"Open folder",outPath:"Output folder",
       elapsed:"Elapsed",resultTitle:"4 · Done",previewTitle:"Subtitle preview",colTime:"Time",colSrc:"Source",colDst:"Translation",
       noKey:"No translation API key — source-only SRT will be produced",ready:"Ready",running:"Processing…",done:"Done",error:"Error",cancelled:"Cancelled",
       apiSaved:"API settings saved",chooseFile:"Choose a file first",apiOk:"Translation API configured",
@@ -457,10 +460,14 @@ function onDone(ev){
   currentStatus="done"; renderStages();
   $("resultCard").style.display="block";
   $("resultInfo").textContent=$("fileName").textContent+" — "+(state?.info?`${state.info.segments} segments · speech ${state.info.coverage}% · ${state.info.device}`:"");
-  $("dlRow").innerHTML=ev.files.map(f=>`<a class="dl" href="/api/download/${encodeURIComponent(f.name)}">⬇ ${f.name}</a>`).join("");
+  $("dlRow").innerHTML=ev.files.map(f=>`<a class="dl" href="/api/download/${encodeURIComponent(f.name)}">⬇ ${f.name}</a>`).join("")
+    + `<a class="dl" href="javascript:void(0)" onclick="openFolder()">📁 ${t("openFolder")}</a>`;
+  const p0=(ev.files||[]).find(f=>f.path)?.path;
+  $("outPath").textContent = p0 ? t("outPath")+": "+p0.replace(/[\\\/][^\\\/]+$/,"") : "";
   $("cancelBtn").style.display="none"; $("startBtn").disabled=false;
   loadPreview();
 }
+async function openFolder(){ try{ await fetch("/api/open_folder",{method:"POST"}); }catch(e){} }
 async function loadPreview(){
   const s=await (await fetch("/api/state")).json();
   $("segBody").innerHTML=(s.segments||[]).map(x=>
