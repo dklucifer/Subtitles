@@ -83,6 +83,7 @@ details summary{cursor:pointer;color:var(--muted);font-size:13px;margin-bottom:1
     <div class="lang-switch">
       <button id="btnZh" class="on" onclick="setLang('zh')">中文</button>
       <button id="btnEn" onclick="setLang('en')">EN</button>
+      <button id="exitBtn" onclick="exitApp()" style="color:var(--muted)" data-i18n="exitApp">退出程序</button>
     </div>
   </header>
 
@@ -228,6 +229,7 @@ const I18N = {
       saveApi:"保存 API 设置",testApi:"测试连接",apiTesting:"测试中…",apiTestOk:"连接成功 · {ms} ms",apiTestFail:"连接失败：{e}",uploading:"上传中…",upDone:"上传完成，开始处理",
       start:"开始生成字幕",cancel:"取消",progressTitle:"3 · 处理进度",eta:"预计剩余",
       openFolder:"打开所在文件夹",outPath:"输出位置",
+      exitApp:"退出程序",exitConfirm:"确定退出 Subtitles 吗？后台服务将关闭。",exitConfirmRun:"正在处理任务，退出会中止任务并关闭服务。确定退出吗？",exitDone:"Subtitles 已退出，可以关闭此页面。",
       elapsed:"已用时",resultTitle:"4 · 完成",previewTitle:"字幕预览",colTime:"时间",colSrc:"原文",colDst:"译文",
       noKey:"未配置翻译 API —— 将只生成原文 SRT",ready:"就绪",running:"处理中…",done:"完成",error:"出错",cancelled:"已取消",
       apiSaved:"API 设置已保存",chooseFile:"请先选择文件",apiOk:"翻译 API 已配置",
@@ -247,6 +249,7 @@ const I18N = {
       saveApi:"Save API settings",testApi:"Test connection",apiTesting:"Testing…",apiTestOk:"Connected · {ms} ms",apiTestFail:"Failed: {e}",uploading:"Uploading…",upDone:"Upload complete, processing started",
       start:"Generate subtitles",cancel:"Cancel",progressTitle:"3 · Progress",eta:"ETA",
       openFolder:"Open folder",outPath:"Output folder",
+      exitApp:"Exit",exitConfirm:"Exit Subtitles? The background service will shut down.",exitConfirmRun:"A job is running — exiting will abort it and shut down the service. Exit anyway?",exitDone:"Subtitles has exited. You can close this page now.",
       elapsed:"Elapsed",resultTitle:"4 · Done",previewTitle:"Subtitle preview",colTime:"Time",colSrc:"Source",colDst:"Translation",
       noKey:"No translation API key — source-only SRT will be produced",ready:"Ready",running:"Processing…",done:"Done",error:"Error",cancelled:"Cancelled",
       apiSaved:"API settings saved",chooseFile:"Choose a file first",apiOk:"Translation API configured",
@@ -468,6 +471,13 @@ function onDone(ev){
   loadPreview();
 }
 async function openFolder(){ try{ await fetch("/api/open_folder",{method:"POST"}); }catch(e){} }
+async function exitApp(){
+  const running = currentStatus==="running" || currentStatus==="queued";
+  const msg = running ? t("exitConfirmRun") : t("exitConfirm");
+  if(!confirm(msg)) return;
+  try{ await fetch("/api/shutdown",{method:"POST"}); }catch(e){}
+  document.body.innerHTML = `<div style="display:flex;align-items:center;justify-content:center;height:100vh;color:var(--muted);font-size:14px">${t("exitDone")}</div>`;
+}
 async function loadPreview(){
   const s=await (await fetch("/api/state")).json();
   $("segBody").innerHTML=(s.segments||[]).map(x=>

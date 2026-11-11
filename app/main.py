@@ -218,7 +218,12 @@ def cancel_job():
 
 @app.post("/api/shutdown")
 def shutdown_server():
-    """Clean exit for stop.bat - the windowless app has no close button."""
+    """Clean exit for stop.bat / UI exit button — kills ffmpeg children first."""
+    try:
+        from app.pipeline import audio as _audio
+        _audio.kill_current()
+    except Exception:
+        pass
     threading.Timer(0.5, os._exit, (0,)).start()
     return {"ok": True}
 
