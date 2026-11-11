@@ -1,0 +1,511 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Subtitles</title>
+<style>
+:root{
+  --bg:#0f1420;--panel:#171e2e;--panel2:#1d2538;--line:#2a3450;
+  --text:#e8ecf5;--muted:#8b94ab;--accent:#4f8cff;--accent2:#7c5cff;
+  --ok:#2fbf71;--warn:#f5a623;--err:#ef5b5b;--radius:14px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:"Segoe UI","Microsoft YaHei",system-ui,sans-serif;min-height:100vh}
+.wrap{max-width:980px;margin:0 auto;padding:24px 20px 60px}
+header{display:flex;align-items:center;justify-content:space-between;margin-bottom:26px}
+.logo{display:flex;align-items:center;gap:12px}
+.logo .mark{width:38px;height:38px;border-radius:10px;background:linear-gradient(135deg,var(--accent),var(--accent2));display:flex;align-items:center;justify-content:center;font-size:20px}
+.logo h1{font-size:22px;font-weight:700;letter-spacing:.5px}
+.lang-switch{display:flex;gap:0;border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.lang-switch button{background:transparent;border:0;color:var(--muted);padding:7px 16px;cursor:pointer;font-size:13px}
+.lang-switch button.on{background:var(--accent);color:#fff}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:20px;margin-bottom:18px}
+.card h2{font-size:15px;font-weight:600;margin-bottom:14px;color:var(--text)}
+.muted{color:var(--muted);font-size:13px}
+.drop{border:2px dashed var(--line);border-radius:var(--radius);padding:34px;text-align:center;cursor:pointer;transition:.2s}
+.drop:hover,.drop.over{border-color:var(--accent);background:rgba(79,140,255,.06)}
+.drop .icon{font-size:34px;margin-bottom:8px}
+.file-chip{display:none;align-items:center;gap:10px;background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:10px 14px;margin-top:12px;font-size:14px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px}
+.field label{display:block;font-size:12px;color:var(--muted);margin-bottom:6px}
+select,input[type=text],input[type=password]{width:100%;background:var(--panel2);border:1px solid var(--line);border-radius:8px;color:var(--text);padding:9px 11px;font-size:13px;outline:none}
+select:focus,input:focus{border-color:var(--accent)}
+select:disabled{opacity:.4;cursor:not-allowed}
+textarea:focus{border-color:var(--accent)}
+.row{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-top:14px}
+.toggle{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--muted);cursor:pointer;user-select:none}
+.toggle input{accent-color:var(--accent);width:16px;height:16px}
+.btn{background:linear-gradient(135deg,var(--accent),var(--accent2));border:0;color:#fff;border-radius:10px;padding:12px 28px;font-size:15px;font-weight:600;cursor:pointer;transition:.15s}
+.btn:hover{filter:brightness(1.1)}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.btn.ghost{background:transparent;border:1px solid var(--line);color:var(--text);font-size:13px;padding:9px 18px}
+.btn.danger{background:transparent;border:1px solid var(--err);color:var(--err);font-size:13px;padding:9px 18px}
+/* progress */
+#progressCard{display:none}
+.overall{display:flex;align-items:center;gap:16px;margin-bottom:18px}
+.pct-big{font-size:34px;font-weight:700;min-width:86px;font-variant-numeric:tabular-nums}
+.timer{font-variant-numeric:tabular-nums;color:var(--muted);font-size:14px;text-align:right;line-height:1.5}
+.timer b{color:var(--text);font-size:17px}
+.bar{flex:1;height:10px;background:var(--panel2);border-radius:99px;overflow:hidden}
+.bar>div{height:100%;border-radius:99px;background:linear-gradient(90deg,var(--accent),var(--accent2));transition:width .4s}
+.stages{display:flex;gap:8px;margin:16px 0}
+.stage{flex:1;background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:10px;font-size:12px;position:relative;overflow:hidden}
+.stage .dot{width:8px;height:8px;border-radius:50%;background:var(--line);display:inline-block;margin-right:6px}
+.stage.active{border-color:var(--accent)}
+.stage.active .dot{background:var(--accent);animation:pulse 1.2s infinite}
+.stage.done .dot{background:var(--ok)}
+.stage.done{opacity:.75}
+.stage .eta{color:var(--muted);font-size:11px;margin-top:4px;font-variant-numeric:tabular-nums}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
+.log{background:#0b0f19;border:1px solid var(--line);border-radius:10px;padding:12px;height:130px;overflow-y:auto;font-family:Consolas,monospace;font-size:12px;color:var(--muted);white-space:pre-wrap}
+/* results */
+#resultCard{display:none}
+.dl-row{display:flex;gap:10px;flex-wrap:wrap;margin:12px 0}
+.dl{background:var(--panel2);border:1px solid var(--line);border-radius:10px;color:var(--text);padding:10px 16px;font-size:13px;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;gap:8px;transition:.15s}
+.dl:hover{border-color:var(--accent)}
+table{width:100%;border-collapse:collapse;font-size:13px}
+td,th{padding:7px 8px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+th{color:var(--muted);font-weight:500;font-size:12px}
+td.t{color:var(--muted);font-variant-numeric:tabular-nums;white-space:nowrap}
+.preview{max-height:300px;overflow-y:auto}
+.err-box{background:rgba(239,91,91,.1);border:1px solid var(--err);border-radius:10px;padding:12px;font-size:13px;color:var(--err);display:none;margin-top:12px}
+details summary{cursor:pointer;color:var(--muted);font-size:13px;margin-bottom:10px}
+#apiStatus{font-size:12px;margin-left:10px}
+.hint{font-size:11px;color:var(--warn);margin-top:5px;line-height:1.5}
+.hint a{color:var(--accent);cursor:pointer;text-decoration:underline}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="logo"><div class="mark">🎬</div><h1>Subtitles</h1></div>
+    <div class="lang-switch">
+      <button id="btnZh" class="on" onclick="setLang('zh')">中文</button>
+      <button id="btnEn" onclick="setLang('en')">EN</button>
+    </div>
+  </header>
+
+  <div class="card">
+    <h2 data-i18n="uploadTitle">1 · 选择媒体文件</h2>
+    <div class="drop" id="drop">
+      <div class="icon">📁</div>
+      <div data-i18n="dropHint">拖拽视频 / 音频到这里，或点击选择</div>
+      <div class="muted" style="margin-top:6px">mp4 · mkv · mov · webm · mp3 · wav · m4a · flac</div>
+      <input type="file" id="file" hidden accept="video/*,audio/*">
+    </div>
+    <div class="file-chip" id="fileChip">📄 <span id="fileName"></span><span class="muted" id="fileSize"></span></div>
+    <div id="upWrap" style="display:none;margin-top:8px">
+      <div class="bar"><div id="upBar" style="width:0%"></div></div>
+      <div class="muted" style="margin-top:4px"><span id="upPct">0%</span> · <span id="upStatus" data-i18n="uploading">上传中…</span></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2 data-i18n="settingsTitle">2 · 设置</h2>
+    <div class="grid">
+      <div class="field"><label data-i18n="srcLang">源语言</label>
+        <select id="srcLang">
+          <option value="auto" data-i18n-opt="autoDetect">自动检测</option>
+          <option value="zh">中文</option><option value="en">English</option>
+          <option value="ja">日本語</option><option value="ko">한국어</option>
+          <option value="de">Deutsch</option><option value="fr">Français</option>
+          <option value="es">Español</option><option value="ru">Русский</option>
+        </select></div>
+      <div class="field"><label data-i18n="tgtLang">目标语言（译文）</label>
+        <input type="text" id="tgtLang" value="简体中文"></div>
+      <div class="field"><label data-i18n="asrModel">识别模型</label>
+        <select id="asrModel">
+          <option value="small" selected>small · 快 (默认)</option>
+          <option value="medium">medium · 均衡</option>
+          <option value="large-v3-turbo">large-v3-turbo · 最准</option>
+        </select></div>
+      <div class="field"><label data-i18n="asrEngine">识别引擎</label>
+        <select id="asrEngine">
+          <option value="whisper" selected data-i18n-opt="engWhisper">faster-whisper · 默认</option>
+          <option value="qwen-0.6b">Qwen3-ASR 0.6B · 抗BGM</option>
+          <option value="qwen-1.7b">Qwen3-ASR 1.7B · 抗BGM最准</option>
+        </select>
+        <div class="hint" id="engineHint" style="display:none"></div></div>
+      <div class="field"><label data-i18n="device">运行设备</label>
+        <select id="device">
+          <option value="auto" selected>Auto</option>
+          <option value="cuda">GPU (CUDA)</option>
+          <option value="cpu">CPU</option>
+        </select></div>
+    </div>
+    <details style="margin-top:14px">
+      <summary data-i18n="advTitle">高级选项（可选辅助功能）</summary>
+      <div class="grid" style="margin-top:10px">
+        <div class="field"><label data-i18n="hotwords">热词（逗号分隔，提示识别专有名词）</label>
+          <input type="text" id="hotwords" placeholder="DeepSeek, Qwen3, CTR..."></div>
+        <div class="field"><label data-i18n="confFilter">低置信度过滤</label>
+          <select id="minConfidence">
+            <option value="0" selected data-i18n-opt="confOff">关闭</option>
+            <option value="-0.8" data-i18n-opt="confLoose">宽松 (-0.8)</option>
+            <option value="-0.6" data-i18n-opt="confMid">标准 (-0.6)</option>
+            <option value="-0.4" data-i18n-opt="confStrict">严格 (-0.4)</option>
+          </select></div>
+      </div>
+      <div class="field" style="margin-top:10px"><label data-i18n="glossary">术语表（每行一条：原文=译文）</label>
+        <textarea id="glossary" rows="3" style="width:100%;background:var(--panel2);border:1px solid var(--line);border-radius:8px;color:var(--text);padding:9px 11px;font-size:13px;outline:none;font-family:inherit" placeholder="Transformer=变换器&#10;Stark=斯塔克"></textarea></div>
+      <label class="toggle" style="margin-top:10px"><input type="checkbox" id="twoPass"><span data-i18n="twoPass">两遍翻译 · 高级模式（更准，翻译耗时×2）</span></label>
+    </details>
+    <div class="row">
+      <label class="toggle"><input type="checkbox" id="bilingual" checked><span data-i18n="bilingualOpt">生成双语字幕</span></label>
+      <label class="toggle"><input type="checkbox" id="burn"><span data-i18n="burnOpt">烧录进视频</span></label>
+      <span class="toggle" id="fontSizeWrap" style="display:none">
+        <label data-i18n="fontSize" style="display:inline">字幕字号</label>
+        <select id="fontSize" style="width:80px">
+          <option value="18" data-i18n-opt="fSmall">小</option>
+          <option value="24" selected data-i18n-opt="fMedium">中</option>
+          <option value="34" data-i18n-opt="fLarge">大</option>
+        </select>
+      </span>
+    </div>
+    <details style="margin-top:16px">
+      <summary data-i18n="apiTitle">翻译 API 设置（保存在本机）</summary>
+      <div class="grid" style="margin-top:10px">
+        <div class="field"><label>BASE URL</label><input type="text" id="llmBase" placeholder="https://api.deepseek.com/v1"></div>
+        <div class="field"><label>API KEY</label><input type="password" id="llmKey" placeholder="sk-..."></div>
+        <div class="field"><label>MODEL</label><input type="text" id="llmModel" placeholder="deepseek-chat"></div>
+      </div>
+      <div class="row"><span class="muted" id="apiStatus"></span>
+        <span style="margin-left:auto;display:flex;gap:8px">
+          <button class="btn ghost" onclick="testApi()" data-i18n="testApi">测试连接</button>
+          <button class="btn ghost" onclick="saveCfg()" data-i18n="saveApi">保存 API 设置</button>
+        </span></div>
+    </details>
+    <div class="row">
+      <button class="btn" id="startBtn" onclick="startJob()" data-i18n="start">开始生成字幕</button>
+      <button class="btn danger" id="cancelBtn" style="display:none" onclick="cancelJob()" data-i18n="cancel">取消</button>
+      <span class="muted" id="apiHint"></span>
+    </div>
+    <div class="err-box" id="errBox"></div>
+  </div>
+
+  <div class="card" id="progressCard">
+    <h2 data-i18n="progressTitle">3 · 处理进度</h2>
+    <div class="overall">
+      <div class="pct-big" id="pctBig">0%</div>
+      <div class="bar"><div id="overallBar" style="width:0%"></div></div>
+      <div class="timer">
+        <div><span data-i18n="eta">预计剩余</span> <b id="etaVal">--:--</b></div>
+        <div><span data-i18n="elapsed">已用时</span> <span id="elapsedVal">00:00</span></div>
+      </div>
+    </div>
+    <div class="stages" id="stages"></div>
+    <div class="log" id="log"></div>
+  </div>
+
+  <div class="card" id="resultCard">
+    <h2 data-i18n="resultTitle">4 · 完成</h2>
+    <div class="muted" id="resultInfo"></div>
+    <div class="dl-row" id="dlRow"></div>
+    <h2 style="margin-top:16px" data-i18n="previewTitle">字幕预览</h2>
+    <div class="preview"><table>
+      <thead><tr><th style="width:120px" data-i18n="colTime">时间</th><th data-i18n="colSrc">原文</th><th data-i18n="colDst">译文</th></tr></thead>
+      <tbody id="segBody"></tbody>
+    </table></div>
+  </div>
+</div>
+
+<script>
+const STAGE_KEYS = ["extract","screen","asr","translate","export"];
+const I18N = {
+  zh:{uploadTitle:"1 · 选择媒体文件",dropHint:"拖拽视频 / 音频到这里，或点击选择",settingsTitle:"2 · 设置",
+      srcLang:"源语言",tgtLang:"目标语言（译文）",asrModel:"识别模型",device:"运行设备",asrEngine:"识别引擎",
+      engWhisper:"faster-whisper · 默认",
+      advTitle:"高级选项（可选辅助功能）",hotwords:"热词（逗号分隔，提示识别专有名词）",confFilter:"低置信度过滤",
+      confOff:"关闭",confLoose:"宽松 (-0.8)",confMid:"标准 (-0.6)",confStrict:"严格 (-0.4)",
+      glossary:"术语表（每行一条：原文=译文）",twoPass:"两遍翻译 · 高级模式（更准，翻译耗时×2）",
+      qwenNA:"（未安装 Qwen 引擎组件，选项不可用）",
+      engineMissing:"该引擎的模型尚未下载",
+      engineNoRuntime:"未安装 Qwen 运行组件",
+      engineGet:"去下载",
+      autoDetect:"自动检测",bilingualOpt:"生成双语字幕",burnOpt:"烧录进视频",fontSize:"字幕字号",fSmall:"小",fMedium:"中",fLarge:"大",apiTitle:"翻译 API 设置（保存在本机）",
+      saveApi:"保存 API 设置",testApi:"测试连接",apiTesting:"测试中…",apiTestOk:"连接成功 · {ms} ms",apiTestFail:"连接失败：{e}",uploading:"上传中…",upDone:"上传完成，开始处理",
+      start:"开始生成字幕",cancel:"取消",progressTitle:"3 · 处理进度",eta:"预计剩余",
+      elapsed:"已用时",resultTitle:"4 · 完成",previewTitle:"字幕预览",colTime:"时间",colSrc:"原文",colDst:"译文",
+      noKey:"未配置翻译 API —— 将只生成原文 SRT",ready:"就绪",running:"处理中…",done:"完成",error:"出错",cancelled:"已取消",
+      apiSaved:"API 设置已保存",chooseFile:"请先选择文件",apiOk:"翻译 API 已配置",
+      st:{extract:"提取音频",screen:"语音初筛",asr:"语音识别",translate:"翻译",export:"导出"},
+      etaStage:"剩余 {t}",doneIn:"共 {t}"},
+  en:{uploadTitle:"1 · Choose media",dropHint:"Drop video / audio here, or click to browse",settingsTitle:"2 · Settings",
+      srcLang:"Source language",tgtLang:"Target language",asrModel:"ASR model",device:"Device",asrEngine:"ASR engine",
+      engWhisper:"faster-whisper · default",
+      advTitle:"Advanced options (optional helpers)",hotwords:"Hotwords (comma-separated)",confFilter:"Low-confidence filter",
+      confOff:"Off",confLoose:"Loose (-0.8)",confMid:"Standard (-0.6)",confStrict:"Strict (-0.4)",
+      glossary:"Glossary (one per line: source=target)",twoPass:"Two-pass translation · premium (better, 2x time)",
+      qwenNA:"(Qwen engine components not installed)",
+      engineMissing:"Model for this engine is not downloaded yet",
+      engineNoRuntime:"Qwen runtime pack not installed",
+      engineGet:"Download",
+      autoDetect:"Auto detect",bilingualOpt:"Bilingual SRT",burnOpt:"Burn into video",fontSize:"Font size",fSmall:"Small",fMedium:"Medium",fLarge:"Large",apiTitle:"Translation API settings (stored locally)",
+      saveApi:"Save API settings",testApi:"Test connection",apiTesting:"Testing…",apiTestOk:"Connected · {ms} ms",apiTestFail:"Failed: {e}",uploading:"Uploading…",upDone:"Upload complete, processing started",
+      start:"Generate subtitles",cancel:"Cancel",progressTitle:"3 · Progress",eta:"ETA",
+      elapsed:"Elapsed",resultTitle:"4 · Done",previewTitle:"Subtitle preview",colTime:"Time",colSrc:"Source",colDst:"Translation",
+      noKey:"No translation API key — source-only SRT will be produced",ready:"Ready",running:"Processing…",done:"Done",error:"Error",cancelled:"Cancelled",
+      apiSaved:"API settings saved",chooseFile:"Choose a file first",apiOk:"Translation API configured",
+      st:{extract:"Extract",screen:"Speech screen",asr:"ASR",translate:"Translate",export:"Export"},
+      etaStage:"{t} left",doneIn:"in {t}"},
+};
+let LANG = localStorage.getItem("sub_lang") || "zh";
+let stageEts = {};           // stage -> {eta, at}
+let lastOverallEta = null, lastEtaAt = null;
+let selectedFile = null, currentStatus = "idle";
+
+const $ = id => document.getElementById(id);
+function t(k){ return (I18N[LANG]||I18N.zh)[k] || k; }
+function fmt(sec){ if(sec==null||isNaN(sec)) return "--:--"; sec=Math.max(0,Math.round(sec));
+  const m=Math.floor(sec/60), s=sec%60; return String(m).padStart(2,"0")+":"+String(s).padStart(2,"0"); }
+function setLang(l){ LANG=l; localStorage.setItem("sub_lang",l);
+  $("btnZh").classList.toggle("on",l==="zh"); $("btnEn").classList.toggle("on",l==="en");
+  document.querySelectorAll("[data-i18n]").forEach(el=>{ el.textContent = t(el.dataset.i18n); });
+  document.querySelectorAll("[data-i18n-opt]").forEach(el=>{ el.textContent = t(el.dataset.i18nOpt); });
+  renderStages(); }
+function renderStages(){
+  $("stages").innerHTML = STAGE_KEYS.map(k=>{
+    const cls = stageClass(k);
+    const eta = stageEtaText(k);
+    return `<div class="stage ${cls}" id="stage-${k}"><span class="dot"></span>${t("st")[k]||k} <div class="eta">${eta||""}</div></div>`;
+  }).join("");
+}
+function stageClass(k){ if(currentStatus==="done") return "done";
+  if(currentStatus==="error"||currentStatus==="cancelled") return currentStatus==="error"&&lastStage===k?"":"done";
+  if(lastStage===k) return "active"; return ""; }
+function stageEtaText(k){
+  const rec = stageEts[k]; if(!rec) return "";
+  if(currentStatus==="done") return (t("st"),fmtDone(rec));
+  const gone = (Date.now()-rec.at)/1000;
+  return t("etaStage").replace("{t}", fmt(rec.eta-gone));
+}
+function fmtDone(rec){ return ""; }
+let lastStage = null;
+
+// ---- dropzone ----
+const drop=$("drop");
+drop.onclick=()=>$("file").click();
+drop.ondragover=e=>{e.preventDefault();drop.classList.add("over")};
+drop.ondragleave=()=>drop.classList.remove("over");
+drop.ondrop=e=>{e.preventDefault();drop.classList.remove("over");pick(e.dataTransfer.files[0])};
+$("file").onchange=e=>pick(e.target.files[0]);
+$("burn").onchange=e=>{ $("fontSizeWrap").style.display = e.target.checked ? "inline-flex" : "none"; };
+$("asrEngine").onchange=e=>{ $("asrModel").disabled = e.target.value.startsWith("qwen"); checkEngine(); };
+function pick(f){ if(!f) return; selectedFile=f;
+  $("fileName").textContent=f.name;
+  $("fileSize").textContent=" ("+(f.size/1048576).toFixed(1)+" MB)";
+  $("fileChip").style.display="flex"; }
+
+// ---- config ----
+async function loadCfg(){
+  const cfg = await (await fetch("/api/config")).json();
+  if(cfg.llm){ $("llmBase").value=cfg.llm.base_url||""; $("llmModel").value=cfg.llm.model||""; }
+  $("apiStatus").textContent = cfg.has_api_key ? t("apiOk") : t("noKey");
+  $("apiHint").textContent = cfg.has_api_key ? "" : t("noKey");
+  if(cfg.subtitle){ $("glossary").value=cfg.subtitle.glossary||""; $("twoPass").checked=!!cfg.subtitle.two_pass; }
+  if(cfg.asr){
+    if(cfg.asr.engine) $("asrEngine").value=cfg.asr.engine;
+    if(cfg.asr.model) $("asrModel").value=cfg.asr.model;
+    if(cfg.asr.device) $("device").value=cfg.asr.device;
+    if(cfg.asr.hotwords) $("hotwords").value=cfg.asr.hotwords;
+    if(cfg.asr.min_confidence) $("minConfidence").value=String(cfg.asr.min_confidence);
+  }
+  if(cfg.qwen_available===false){
+    // keep the options selectable: the engine may simply need its model
+    // (checkEngine decides between "download" and "this build can't run it")
+  }
+  $("asrModel").disabled=$("asrEngine").value.startsWith("qwen");
+  checkEngine();
+}
+// ---- local model availability (Qwen engines) ----
+let modelsInfo=null;
+function modelState(engine){
+  if(!modelsInfo) return "unknown";
+  if(!modelsInfo.deps_ok) return "nort";
+  const m=(modelsInfo.models||[]).find(x=>x.engine===engine);
+  return m && m.installed ? "ok" : "missing";
+}
+function checkEngine(){
+  const el=$("engineHint"), eng=$("asrEngine").value;
+  if(!eng.startsWith("qwen")){ el.style.display="none"; el.textContent=""; return; }
+  const s=modelState(eng);
+  if(s==="ok" || s==="unknown"){ el.style.display="none"; el.textContent=""; return; }
+  el.style.display="block";
+  el.innerHTML = (s==="nort" ? t("engineNoRuntime") : t("engineMissing")) +
+    ' · <a onclick="goDownload(\''+eng+'\')">'+t("engineGet")+'</a>';
+}
+function goDownload(engine){
+  saveAsrPrefs();
+  location.href="/download?engine="+encodeURIComponent(engine);
+}
+async function saveAsrPrefs(){
+  await fetch("/api/config",{method:"POST",headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({asr:{engine:$("asrEngine").value,model:$("asrModel").value,
+      device:$("device").value,hotwords:$("hotwords").value.trim(),
+      min_confidence:parseFloat($("minConfidence").value)||0}})});
+}
+async function saveCfgSilent(){
+  await fetch("/api/config",{method:"POST",headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({llm:{base_url:$("llmBase").value.trim(),api_key:$("llmKey").value.trim(),model:$("llmModel").value.trim()},
+      subtitle:{glossary:$("glossary").value,two_pass:$("twoPass").checked}})});
+  $("llmKey").value="";
+}
+async function saveCfg(){ await saveCfgSilent(); flash(t("apiSaved")); }
+async function testApi(){
+  const st=$("apiStatus"); st.style.color="";
+  await saveCfgSilent();                 // test whatever is currently in the fields
+  st.textContent=t("apiTesting");
+  try{
+    const r=await (await fetch("/api/test_llm",{method:"POST"})).json();
+    if(r.ok){ st.textContent=t("apiTestOk").replace("{ms}",r.ms); st.style.color="#1a9d5c"; }
+    else{ st.textContent=t("apiTestFail").replace("{e}",r.error||"unknown"); st.style.color="#d64545"; }
+  }catch(e){ st.textContent=t("apiTestFail").replace("{e}",e.message||e); st.style.color="#d64545"; }
+  setTimeout(()=>{ st.style.color=""; loadCfg(); },6000);
+}
+function flash(msg){ const el=$("apiStatus"); el.textContent=msg; setTimeout(loadCfg,1500); }
+
+// ---- job ----
+function startJob(){
+  if(!selectedFile) return showErr(t("chooseFile"));
+  const eng=$("asrEngine").value;
+  if(eng.startsWith("qwen") && modelState(eng)==="missing"){
+    // no weights on this machine -> take the user straight to the download page
+    saveAsrPrefs();
+    location.href="/download?engine="+encodeURIComponent(eng);
+    return;
+  }
+  const fd=new FormData();
+  fd.append("file",selectedFile);
+  fd.append("target_language",$("tgtLang").value.trim()||"English");
+  fd.append("src_language",$("srcLang").value);
+  fd.append("bilingual",$("bilingual").checked);
+  fd.append("burn",$("burn").checked);
+  fd.append("asr_model",$("asrModel").value);
+  fd.append("asr_engine",$("asrEngine").value);
+  fd.append("device",$("device").value);
+  fd.append("font_size",$("fontSize").value);
+  fd.append("hotwords",$("hotwords").value.trim());
+  fd.append("min_confidence",$("minConfidence").value);
+  fd.append("glossary",$("glossary").value);
+  fd.append("two_pass",$("twoPass").checked);
+  saveAsrPrefs();                       // remember engine/device/hotword choices
+  $("startBtn").disabled=true; hideErr();
+  // visual upload progress (fetch has no upload events, so XHR)
+  $("upWrap").style.display="block";
+  $("upBar").style.width="0%"; $("upPct").textContent="0%"; $("upStatus").textContent=t("uploading");
+  const xhr=new XMLHttpRequest();
+  xhr.open("POST","/api/start");
+  xhr.upload.onprogress=e=>{
+    if(e.lengthComputable){
+      const p=Math.round(e.loaded/e.total*100);
+      $("upBar").style.width=p+"%"; $("upPct").textContent=p+"%";
+    }
+  };
+  xhr.onload=()=>{
+    if(xhr.status===200){
+      $("upBar").style.width="100%"; $("upPct").textContent="100%";
+      $("upStatus").textContent=t("upDone");
+      resetProgress();
+    }else{
+      let e={}; try{ e=JSON.parse(xhr.responseText); }catch(_){}
+      // Only a missing weight files sends the user to the download page; a
+      // build without the inference runtime cannot be fixed by downloading
+      // anything, so say so plainly instead of bouncing them around.
+      if(e.code==="runtime_missing"){
+        showErr(t("engineNoRuntime"));
+        $("startBtn").disabled=false; $("upWrap").style.display="none";
+        return;
+      }
+      if(e.download_url){ saveAsrPrefs(); location.href=e.download_url; return; }
+      showErr(e.error||("start failed ("+xhr.status+")"));
+      $("startBtn").disabled=false; $("upWrap").style.display="none";
+    }
+  };
+  xhr.onerror=()=>{
+    showErr("network error");
+    $("startBtn").disabled=false; $("upWrap").style.display="none";
+  };
+  xhr.send(fd);
+}
+async function cancelJob(){ await fetch("/api/cancel",{method:"POST"}); }
+function showErr(m){ const el=$("errBox"); el.style.display="block"; el.textContent=m; }
+function hideErr(){ $("errBox").style.display="none"; }
+function resetProgress(){ $("progressCard").style.display="block"; $("resultCard").style.display="none";
+  stageEts={}; lastStage=null; $("log").textContent=""; $("segBody").innerHTML="";
+  renderStages(); setOverall(0,null,null); }
+
+function setOverall(pct, eta, elapsed){
+  $("pctBig").textContent=Math.round(pct)+"%";
+  $("overallBar").style.width=pct+"%";
+  if(eta!=null){ lastOverallEta=eta; lastEtaAt=Date.now(); }
+  if(elapsed!=null) $("elapsedVal").textContent=fmt(elapsed);
+  if(lastOverallEta!=null) $("etaVal").textContent=fmt(lastOverallEta-(Date.now()-lastEtaAt)/1000);
+}
+function onProgress(ev){
+  lastStage=ev.stage; stageEts[ev.stage]={eta:ev.eta,at:Date.now()};
+  setOverall(ev.overall, ev.eta, ev.elapsed); renderStages();
+  const el=$("stage-"+ev.stage); if(el) el.querySelector(".eta").textContent =
+    ev.eta!=null&&ev.pct<100 ? t("etaStage").replace("{t}",fmt(ev.eta)) : (ev.msg||"✓");
+}
+function onLog(text){ const el=$("log"); el.textContent+=text+"\n"; el.scrollTop=el.scrollHeight; }
+function onDone(ev){
+  currentStatus="done"; renderStages();
+  $("resultCard").style.display="block";
+  $("resultInfo").textContent=$("fileName").textContent+" — "+(state?.info?`${state.info.segments} segments · speech ${state.info.coverage}% · ${state.info.device}`:"");
+  $("dlRow").innerHTML=ev.files.map(f=>`<a class="dl" href="/api/download/${encodeURIComponent(f.name)}">⬇ ${f.name}</a>`).join("");
+  $("cancelBtn").style.display="none"; $("startBtn").disabled=false;
+  loadPreview();
+}
+async function loadPreview(){
+  const s=await (await fetch("/api/state")).json();
+  $("segBody").innerHTML=(s.segments||[]).map(x=>
+    `<tr><td class="t">${x.start.toFixed(1)}s</td><td>${esc(x.text)}</td><td>${esc(x.translation||"—")}</td></tr>`).join("");
+}
+function esc(s){ return String(s).replace(/[<>&]/g,c=>({"<":"&lt;",">":"&gt;","&":"&amp;"}[c])); }
+
+// ---- websocket ----
+let ws=null;
+function connect(){
+  ws=new WebSocket(`ws://${location.host}/ws`);
+  ws.onmessage=e=>{
+    const m=JSON.parse(e.data);
+    if(m.type==="snapshot"){ applyState(m.state); }
+    else if(m.type==="progress"){ currentStatus="running"; onProgress(m); }
+    else if(m.type==="log"){ onLog(m.text); }
+    else if(m.type==="done"){ window.state=m; onDone(m); }
+    else if(m.type==="error"){ currentStatus="error"; showErr(m.text); $("startBtn").disabled=false; $("cancelBtn").style.display="none"; }
+    else if(m.type==="cancelled"){ currentStatus="cancelled"; $("startBtn").disabled=false; $("cancelBtn").style.display="none"; onLog("cancelled"); }
+  };
+  ws.onclose=()=>setTimeout(connect,2000);
+}
+async function applyState(st){
+  window.state=st;
+  if(st.status==="running"||st.status==="queued"){
+    $("progressCard").style.display="block"; $("cancelBtn").style.display="inline-block";
+    $("startBtn").disabled=true; currentStatus="running";
+    setOverall(st.overall_pct, st.stage_eta, st.elapsed);
+    if(st.stage){ lastStage=st.stage; stageEts[st.stage]={eta:st.stage_eta,at:Date.now()}; }
+    st.log.forEach(onLog); renderStages();
+  } else if(st.status==="done"){
+    currentStatus="done"; $("progressCard").style.display="block";
+    setOverall(100,0,st.elapsed);
+    onDone({files:st.files||[]});
+  }
+}
+setInterval(()=>{ // keep countdowns ticking between server events
+  setOverall(null,null,null);
+  STAGE_KEYS.forEach(k=>{ const el=$("stage-"+k); if(!el) return;
+    const rec=stageEts[k]; if(rec&&lastStage===k&&currentStatus==="running"){
+      const gone=(Date.now()-rec.at)/1000;
+      el.querySelector(".eta").textContent = rec.eta!=null&&rec.eta-gone>1 ? t("etaStage").replace("{t}",fmt(rec.eta-gone)) : "…";
+    }});
+},1000);
+
+async function loadModels(){
+  try{ modelsInfo = await (await fetch("/api/models",{cache:"no-store"})).json(); checkEngine(); }catch(_){ modelsInfo=null; }
+}
+setLang(LANG); loadModels().then(loadCfg); connect();
+</script>
+</body>
+</html>

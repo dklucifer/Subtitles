@@ -1,0 +1,26 @@
+# --- 大体积产物（不发布） ---
+.venv/
+venv/
+dist/
+build/
+runtime/
+models/
+work/
+output/
+_archive/
+
+# --- 含密钥的真实配置（发布 config.example.json 代替） ---
+config.json
+
+# --- 日志与临时文件 ---
+server.log
+*.log
+*.tmp
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+.mypy_cache/
+
+# --- 打包中间产物 ---
+*.spec.bak

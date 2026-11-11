@@ -1,0 +1,15 @@
+fastapi>=0.115
+uvicorn[standard]>=0.32
+python-multipart>=0.0.12
+openai>=1.60
+faster-whisper>=1.1.0
+static-ffmpeg>=2.8
+# GPU support for faster-whisper (CTranslate2 picks cublas/cudnn from PATH)
+nvidia-cublas-cu12
+nvidia-cudnn-cu12
+# Qwen3-ASR engine (optional alternative ASR, Apache-2.0 weights)
+# torch 2.8.0+cu128: pip install torch==2.8.0 --index-url https://download.pytorch.org/whl/cu128
+torch>=2.8
+transformers>=5.13
+accelerate
+soundfile

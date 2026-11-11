@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Subtitles · Model download</title>
+<style>
+:root{
+  --bg:#0f1420;--panel:#171e2e;--panel2:#1d2538;--line:#2a3450;
+  --text:#e8ecf5;--muted:#8b94ab;--accent:#4f8cff;--accent2:#7c5cff;
+  --ok:#2fbf71;--warn:#f5a623;--err:#ef5b5b;--radius:14px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:"Segoe UI","Microsoft YaHei",system-ui,sans-serif;min-height:100vh}
+.wrap{max-width:820px;margin:0 auto;padding:24px 20px 60px}
+header{display:flex;align-items:center;justify-content:space-between;margin-bottom:22px}
+.logo{display:flex;align-items:center;gap:12px}
+.logo .mark{width:38px;height:38px;border-radius:10px;background:linear-gradient(135deg,var(--accent),var(--accent2));display:flex;align-items:center;justify-content:center;font-size:20px}
+.logo h1{font-size:20px;font-weight:700}
+.lang-switch{display:flex;border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.lang-switch button{background:transparent;border:0;color:var(--muted);padding:7px 14px;cursor:pointer;font-size:13px}
+.lang-switch button.on{background:var(--accent);color:#fff}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:20px;margin-bottom:16px}
+.card h2{font-size:15px;font-weight:600;margin-bottom:6px}
+.muted{color:var(--muted);font-size:13px;line-height:1.6}
+.model{display:flex;align-items:center;gap:14px;padding:14px 0;border-top:1px solid var(--line)}
+.model:first-of-type{border-top:0}
+.model .info{flex:1}
+.model .name{font-size:14px;font-weight:600;margin-bottom:3px}
+.tag{font-size:11px;padding:2px 8px;border-radius:99px;border:1px solid var(--line);color:var(--muted);margin-left:8px}
+.tag.ok{color:var(--ok);border-color:rgba(47,191,113,.5);background:rgba(47,191,113,.1)}
+.btn{background:linear-gradient(135deg,var(--accent),var(--accent2));border:0;color:#fff;border-radius:9px;padding:9px 18px;font-size:13px;font-weight:600;cursor:pointer}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.btn.ghost{background:transparent;border:1px solid var(--line);color:var(--text)}
+.btn.danger{background:transparent;border:1px solid var(--err);color:var(--err)}
+.bar{height:10px;background:var(--panel2);border-radius:99px;overflow:hidden;margin:10px 0 6px}
+.bar>div{height:100%;border-radius:99px;background:linear-gradient(90deg,var(--accent),var(--accent2));transition:width .3s}
+.banner{border-radius:10px;padding:12px 14px;font-size:13px;margin-bottom:14px;display:none}
+.banner.warn{background:rgba(245,166,35,.1);border:1px solid var(--warn);color:var(--warn)}
+.banner.err{background:rgba(239,91,91,.1);border:1px solid var(--err);color:var(--err)}
+a{color:var(--accent);text-decoration:none}
+.foot{display:flex;justify-content:space-between;align-items:center;margin-top:18px;gap:10px;flex-wrap:wrap}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="logo"><div class="mark">🎬</div><h1>Subtitles</h1></div>
+    <div class="lang-switch">
+      <button id="btnZh" onclick="setLang('zh')">中文</button>
+      <button id="btnEn" onclick="setLang('en')">EN</button>
+    </div>
+  </header>
+
+  <div class="card">
+    <h2 id="title">本地识别模型</h2>
+    <div class="muted" id="subtitle" style="margin-bottom:12px"></div>
+    <div class="banner warn" id="depBanner"></div>
+    <div id="models"></div>
+  </div>
+
+  <div class="card" id="progCard" style="display:none">
+    <h2 id="progTitle"></h2>
+    <div class="bar"><div id="progBar" style="width:0%"></div></div>
+    <div class="muted" id="progText"></div>
+  </div>
+
+  <div class="card" id="rtCard">
+    <h2 id="rtTitle"></h2>
+    <div class="muted" id="rtText"></div>
+  </div>
+
+  <div class="card">
+    <div class="muted" id="note"></div>
+    <div class="foot">
+      <a href="/" id="back">← 返回</a>
+      <span class="muted" id="npm"></span>
+    </div>
+  </div>
+</div>
+<script>
+const I18N = {
+  zh:{title:"本地识别模型",subtitle:"Qwen3-ASR 用于强背景音乐 / 噪声片源，模型按需下载到本机，不会上传任何数据。",
+      dep:"当前未加载 Qwen 运行组件（torch / transformers）。模型可以提前下载；要实际运行该引擎，需要把 runtime 组件放进程序目录（见下方「运行组件」说明）。",
+      rtTitle:"Qwen 运行组件",
+      rtOk:"已加载，Qwen 引擎可用。运行组件位置：",
+      rtFail:"检测到 runtime 目录，但组件未能加载（可能是版本不匹配）。请重新解压随包提供的运行组件。",
+      rtMissing:"未安装。把随安装包提供的 runtime-pack 压缩包解压到程序目录（与 Subtitles.exe 同级），出现 runtime 文件夹后重启本程序即可启用 Qwen 引擎。",
+      installed:"已安装",notinst:"未安装",dl:"下载",del:"删除",cancel:"取消下载",
+      running:"下载中",done:"下载完成，可以返回使用该引擎了",cancelled:"已取消",
+      err:"下载失败：",back:"← 返回应用",note:"模型权重为 Apache-2.0 许可，可商用；下载源依次尝试 ModelScope / HF 镜像 / Hugging Face，支持断点续传。",
+      speed:"速度",eta:"剩余",preparing:"正在连接下载源…",dialog:"确认删除本机已下载的模型？"},
+  en:{title:"Local ASR models",subtitle:"Qwen3-ASR handles heavy background music and noise. Models are downloaded on demand and never leave this machine.",
+      dep:"The Qwen runtime (torch / transformers) is not loaded. You can pre-download the weights; to actually run the engine, drop the runtime pack into the program folder (see \"Runtime pack\" below).",
+      rtTitle:"Qwen runtime pack",
+      rtOk:"Loaded — the Qwen engines are ready. Runtime location: ",
+      rtFail:"A runtime folder was found but the components failed to load (version mismatch?). Re-extract the runtime pack that ships with the installer.",
+      rtMissing:"Not installed. Extract the runtime-pack archive that ships with the installer into the program folder (next to Subtitles.exe), then restart the app to enable the Qwen engines.",
+      installed:"Installed",notinst:"Not installed",dl:"Download",del:"Delete",cancel:"Cancel",
+      running:"Downloading",done:"Download complete — the engine is ready to use.",cancelled:"Cancelled",
+      err:"Download failed: ",back:"← Back to app",note:"Weights are Apache-2.0 (commercial use allowed). Sources are tried in order: ModelScope / HF mirror / Hugging Face, with byte-range resume.",
+      speed:"speed",eta:"left",preparing:"Connecting to download source…",dialog:"Delete the downloaded model from this machine?"},
+};
+let lang = (navigator.language||"zh").toLowerCase().startsWith("zh") ? "zh" : "en";
+const t = k => I18N[lang][k];
+const $ = id => document.getElementById(id);
+let st = null, timer = null;
+
+function setLang(l){
+  lang = l;
+  $("btnZh").classList.toggle("on", l==="zh");
+  $("btnEn").classList.toggle("on", l==="en");
+  render();
+}
+function mb(n){ return (n/1048576).toFixed(0)+" MB"; }
+function fmtSpeed(bps){ return bps > 1048576 ? (bps/1048576).toFixed(1)+" MB/s" : Math.round(bps/1024)+" KB/s"; }
+function fmtEta(sec){ if(!isFinite(sec)||sec<=0) return "--"; const m=Math.floor(sec/60), s=Math.round(sec%60); return m>60 ? Math.floor(m/60)+"h"+(m%60)+"m" : m+"m"+s+"s"; }
+
+function render(){
+  if(!st) return;
+  $("title").textContent = t("title");
+  $("subtitle").textContent = t("subtitle");
+  $("back").textContent = t("back");
+  $("note").textContent = t("note");
+  $("depBanner").style.display = st.deps_ok ? "none" : "block";
+  $("depBanner").textContent = t("dep");
+  $("npm").textContent = st.models_dir || "";
+
+  const rt = st.runtime || {};
+  $("rtTitle").textContent = t("rtTitle");
+  if(st.deps_ok){
+    $("rtText").textContent = t("rtOk") + (rt.path || "");
+  } else if(rt.present){
+    $("rtText").textContent = t("rtFail");
+  } else {
+    $("rtText").textContent = t("rtMissing");
+  }
+
+  const dl = st.download || {};
+  const busy = dl.status === "running";
+  $("models").innerHTML = st.models.map(m=>{
+    const tag = m.installed ? `<span class="tag ok">${t("installed")}</span>` : `<span class="tag">${t("notinst")}</span>`;
+    const size = m.installed ? mb(m.size_mb*1048576) : "~" + Math.round(m.approx_mb/100)/10 + " GB";
+    let actions = "";
+    if(m.installed){
+      actions = `<button class="btn ghost" onclick="del('${m.engine}')">${t("del")}</button>`;
+    } else if(busy && dl.engine === m.engine){
+      actions = `<button class="btn danger" onclick="cancelDl()">${t("cancel")}</button>`;
+    } else {
+      actions = `<button class="btn" ${busy?"disabled":""} onclick="dl('${m.engine}')">${t("dl")}</button>`;
+    }
+    return `<div class="model"><div class="info"><div class="name">${m.label}${tag}</div>
+      <div class="muted">${size}</div></div>${actions}</div>`;
+  }).join("");
+
+  const card = $("progCard");
+  if(busy){
+    card.style.display = "block";
+    $("progTitle").textContent = t("running") + " · " + (dl.file || t("preparing"));
+    $("progBar").style.width = (dl.pct||0) + "%";
+    const secs = dl.speed ? ((dl.total - dl.done)/dl.speed) : 0;
+    $("progText").textContent = `${dl.pct||0}% · ${mb(dl.done)} / ${mb(dl.total)} · ${t("speed")} ${fmtSpeed(dl.speed||0)} · ${t("eta")} ${fmtEta(secs)}`;
+  } else if(dl.status === "done"){
+    card.style.display = "block";
+    $("progTitle").textContent = t("done");
+    $("progBar").style.width = "100%";
+    $("progText").textContent = mb(dl.total);
+  } else if(dl.status === "error"){
+    card.style.display = "block";
+    $("progTitle").textContent = t("err");
+    $("progBar").style.width = "0%";
+    $("progText").textContent = dl.error || "";
+  } else if(dl.status === "cancelled") {
+    card.style.display = "block";
+    $("progTitle").textContent = t("cancelled");
+    $("progText").textContent = "";
+    $("progBar").style.width = "0%";
+  } else {
+    card.style.display = "none";
+  }
+}
+
+async function refresh(){
+  st = await (await fetch("/api/models",{cache:"no-store"})).json();
+  render();
+  const busy = st.download && st.download.status === "running";
+  if(busy && !timer) timer = setInterval(refresh, 900);
+  if(!busy && timer){ clearInterval(timer); timer = null; }
+}
+async function dl(engine){
+  const r = await fetch("/api/models/download",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({engine})});
+  const d = await r.json();
+  if(!d.ok && d.error) { st.download = {status:"error", error:d.error}; render(); return; }
+  refresh();
+}
+async function cancelDl(){ await fetch("/api/models/cancel",{method:"POST"}); refresh(); }
+async function del(engine){
+  if(!confirm(t("dialog"))) return;
+  await fetch("/api/models/delete",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({engine})});
+  refresh();
+}
+const q = new URLSearchParams(location.search).get("engine");
+if(q) window.__want = q;
+setLang(lang);
+refresh().then(()=>{ if(!st.deps_ok) return; });
+</script>
+</body>
+</html>

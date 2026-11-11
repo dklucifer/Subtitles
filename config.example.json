@@ -1,0 +1,22 @@
+{
+  "llm": {
+    "base_url": "https://api.deepseek.com",
+    "api_key": "sk-你的DeepSeek密钥",
+    "model": "deepseek-chat"
+  },
+  "asr": {
+    "model": "small",
+    "device": "auto",
+    "language": "auto"
+  },
+  "subtitle": {
+    "target_language": "简体中文",
+    "bilingual": true,
+    "max_line_chars": 42,
+    "min_block_gap": 0.5,
+    "min_block_len": 0.6
+  },
+  "server": {
+    "port": 8765
+  }
+}
