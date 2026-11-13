@@ -458,6 +458,7 @@ function startJob(){
   fd.append("two_pass",$("twoPass").checked);
   saveAsrPrefs();                       // remember engine/device/hotword choices
   $("startBtn").disabled=true; hideErr();
+  currentStatus="queued";               // kick the watchdog immediately, don't wait for WS
   // visual upload progress (fetch has no upload events, so XHR)
   $("upWrap").style.display="block";
   $("upBar").style.width="0%"; $("upPct").textContent="0%"; $("upStatus").textContent=t("uploading");
@@ -542,10 +543,11 @@ async function loadPreview(){
 function esc(s){ return String(s).replace(/[<>&]/g,c=>({"<":"&lt;",">":"&gt;","&":"&amp;"}[c])); }
 
 // ---- websocket ----
-let ws=null;
+let ws=null, lastMsgAt=0;
 function connect(){
   ws=new WebSocket(`ws://${location.host}/ws`);
   ws.onmessage=e=>{
+    lastMsgAt=Date.now();
     const m=JSON.parse(e.data);
     if(m.type==="snapshot"){ applyState(m.state); }
     else if(m.type==="progress"){ currentStatus="running"; onProgress(m); }
@@ -554,14 +556,21 @@ function connect(){
     else if(m.type==="error"){ currentStatus="error"; showErr(m.text); $("startBtn").disabled=false; $("cancelBtn").style.display="none"; }
     else if(m.type==="cancelled"){ currentStatus="cancelled"; $("startBtn").disabled=false; $("cancelBtn").style.display="none"; onLog("cancelled"); }
   };
+  ws.onopen=()=>{ lastMsgAt=Date.now(); };
   ws.onclose=()=>setTimeout(connect,2000);
 }
-// polling fallback: if the WS socket is down while a job runs, keep the UI alive
+// Watchdog: a socket can look OPEN (readyState 1) while nothing arrives
+// (half-open after sleep/server restart). So trust "time since last message",
+// not readyState, and never gate the fallback on a status flag the page may
+// have failed to learn in the first place.
+const WS_STALE_MS = 6000;
 setInterval(async()=>{
-  if(currentStatus!=="running" && currentStatus!=="queued") return;
-  if(ws && ws.readyState===1) return;
-  try{ const st=await (await fetch("/api/state")).json();
-       if(st && st.status && st.status!=="idle") applyState(st); }catch(e){}
+  if(ws && ws.readyState===1 && (Date.now()-lastMsgAt) < WS_STALE_MS) return;
+  try{
+    const st=await (await fetch("/api/state",{cache:"no-store"})).json();
+    if(!st || !st.status || st.status==="idle") return;
+    applyState(st);
+  }catch(e){}
 },3000);
 async function applyState(st){
   window.state=st;
@@ -573,7 +582,7 @@ async function applyState(st){
     (st.log||[]).slice(logSeen).forEach(onLog); logSeen=(st.log||[]).length;
     renderStages();
   } else if(st.status==="done"){
-    currentStatus="done"; $("progressCard").style.display="block";
+    if(currentStatus==="done") return;          // don't re-render the Done card on every poll
     setOverall(100,0,st.elapsed);
     onDone({files:st.files||[]});
   }
